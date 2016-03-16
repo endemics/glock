@@ -8,45 +8,51 @@ import (
 	"net/http"
 )
 
-var debug bool
+var isDebug bool
 var myLockMap = make(map[string]string)
 
+func debug(s string) {
+	if isDebug {
+		log.Print(s)
+	}
+}
+
 func listLocks() (s string) {
-	if debug { log.Print(">> listLocks") }
+	debug(">> listLocks")
 	s = ""
 	if len(myLockMap) == 0 {
 		return "[]"
 	}
 	for k, v := range myLockMap {
-		if debug { log.Printf(">>> k: %s, v: %s", k, v) }
-	    if len(s) == 0 {
-	    	s = fmt.Sprintf("%s", k)
-	    } else {
-	    	s = fmt.Sprintf("%s,\n  %s", s, k)
-	    }
+		debug(fmt.Sprintf(">>> k: %s, v: %s", k, v))
+		if len(s) == 0 {
+			s = fmt.Sprintf("%s", k)
+		} else {
+			s = fmt.Sprintf("%s,\n  %s", s, k)
+		}
 	}
-	if debug { log.Printf(">>> s: %s", s) }
+	debug(fmt.Sprintf(">>> s: %s", s))
 	return fmt.Sprintf("[ %s ]", s)
 }
 
 func storeLock(id string) (e error) {
 	myLockMap[id] = id
-	if debug { log.Print(">> storeLock: storing ", id) }
+	debug(fmt.Sprintf(">> storeLock: storing %s", id))
 	err := getLock(id)
 	if err != nil {
 		return errors.New("storeLock: unabled to store lock")
 	}
-	if debug { log.Printf(">> storeLock: lock %s successfully stored", id) }
+	debug(fmt.Sprintf(">> storeLock: lock %s successfully stored", id))
 	return nil
 }
 
 func getLock(id string) (e error) {
 	_, ok := myLockMap[id]
 	if !ok {
-		if debug { log.Printf(">> getLock: lock %s not found", id) }
+		debug(fmt.Sprintf(">> getLock: lock %s not found", id))
 		return errors.New("getLock: lock not found")
 	}
-	if debug { log.Printf(">> getLock: lock %s found", id) }
+	debug(fmt.Sprintf(">> getLock: lock %s found", id))
 	return nil
 }
 
@@ -54,10 +60,10 @@ func deleteLock(id string) (e error) {
 	delete(myLockMap, id)
 	err := getLock(id)
 	if err == nil {
-		if debug { log.Printf(">> deleteLock: lock %s not deleted", id) }
+		debug(fmt.Sprintf(">> deleteLock: lock %s not deleted", id))
 		return errors.New("deleteLock: unable to delete lock")
 	}
-	if debug { log.Printf(">> deleteLock: lock %s deleted", id) }
+	debug(fmt.Sprintf(">> deleteLock: lock %s deleted", id))
 	return nil
 }
 
@@ -67,15 +73,15 @@ func createLockHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("creating ", id)
 	err := getLock(id)
 	if err == nil {
-		if debug { log.Printf(">> lock %s already existed", id) }
+		debug(fmt.Sprintf(">> lock %s already existed", id))
 		http.Error(w, "Lock already exists", http.StatusConflict)
 	} else {
 		err = storeLock(id)
 		if err != nil {
-			if debug { log.Printf(">> lock %s not created", id) }
+			debug(fmt.Sprintf(">> lock %s not created", id))
 			http.Error(w, "Unable to create lock", http.StatusInternalServerError)
 		} else {
-			if debug { log.Printf(">> lock %s created", id) }
+			debug(fmt.Sprintf(">> lock %s created", id))
 			w.WriteHeader(http.StatusCreated)
 			fmt.Fprintf(w, "Lock %s created\n", id)
 		}
@@ -88,10 +94,10 @@ func deleteLockHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("deleting ", id)
 	err := deleteLock(id)
 	if err != nil {
-		if debug { log.Printf("> lock %s not deleted", id) }
+		debug(fmt.Sprintf("> lock %s not deleted", id))
 		http.Error(w, "Unable to delete lock", http.StatusInternalServerError)
 	} else {
-		if debug { log.Printf("> lock %s deleted", id)}
+		debug(fmt.Sprintf("> lock %s deleted", id))
 		fmt.Fprintf(w, "Lock %s deleted\n", id)
 	}
 }
@@ -102,15 +108,15 @@ func infoLockHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("info ", id)
 
 	if id == "" {
-		if debug { log.Printf("> listing all locks") }
+		debug("> listing all locks")
 		fmt.Fprintf(w, listLocks())
 	} else {
 		err := getLock(id)
 		if err != nil {
-			if debug { log.Printf("> no such lock %s", id) }
+			debug(fmt.Sprintf("> no such lock %s", id))
 			http.Error(w, "Lock not found", http.StatusNotFound)
 		} else {
-			if debug { log.Printf("> lock info %s", id) }
+			debug(fmt.Sprintf("> lock info %s", id))
 			fmt.Fprintf(w, id)
 		}
 	}
@@ -130,7 +136,7 @@ func lockRouter(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.BoolVar(&debug, "d", false, "-d to activate debug logs")
+	flag.BoolVar(&isDebug, "d", false, "-d to activate debug logs")
 	flag.Parse()
 
 	// register URL handlers
