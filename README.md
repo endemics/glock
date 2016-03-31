@@ -39,6 +39,8 @@ curl -s -o /dev/null -w "%{http_code}" -X PUT http://lockserver/123
 curl -s -o /dev/null -w "%{http_code}" -X DELETE http://lockserver/123
 ```
 
+The `bin` directory contains 2 examples of scripts that can be used to create and remove a lock.
+
 ## Runtime options
 
 There is only one option that can be used when running *glock*:
