@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
+	"sync"
 )
 
 var isDebug bool
 var myLockMap = make(map[string]string)
+var mutex = &sync.Mutex{}
 
 func debug(s string) {
 	if isDebug {
@@ -20,7 +23,10 @@ func debug(s string) {
 func listLocks() (s string) {
 	debug(">> listLocks")
 	s = ""
+	mutex.Lock()
 	if len(myLockMap) == 0 {
+		mutex.Unlock()
+		runtime.Gosched()
 		return "[]"
 	}
 	for k, v := range myLockMap {
@@ -31,12 +37,18 @@ func listLocks() (s string) {
 			s = fmt.Sprintf("%s,\n  %s", s, k)
 		}
 	}
+	mutex.Unlock()
+	runtime.Gosched()
 	debug(fmt.Sprintf(">>> s: %s", s))
 	return fmt.Sprintf("[ %s ]", s)
 }
 
 func storeLock(id string) (e error) {
+	mutex.Lock()
 	myLockMap[id] = id
+	mutex.Unlock()
+	runtime.Gosched()
+
 	debug(fmt.Sprintf(">> storeLock: storing %s", id))
 	err := getLock(id)
 	if err != nil {
@@ -47,7 +59,10 @@ func storeLock(id string) (e error) {
 }
 
 func getLock(id string) (e error) {
+	mutex.Lock()
 	_, ok := myLockMap[id]
+	mutex.Unlock()
+	runtime.Gosched()
 	if !ok {
 		debug(fmt.Sprintf(">> getLock: lock %s not found", id))
 		return errors.New("getLock: lock not found")
@@ -57,7 +72,10 @@ func getLock(id string) (e error) {
 }
 
 func deleteLock(id string) (e error) {
+	mutex.Lock()
 	delete(myLockMap, id)
+	mutex.Unlock()
+	runtime.Gosched()
 	err := getLock(id)
 	if err == nil {
 		debug(fmt.Sprintf(">> deleteLock: lock %s not deleted", id))
