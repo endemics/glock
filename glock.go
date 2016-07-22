@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"runtime"
 	"sync"
 )
 
@@ -26,7 +25,6 @@ func listLocks() (s string) {
 	mutex.Lock()
 	if len(myLockMap) == 0 {
 		mutex.Unlock()
-		runtime.Gosched()
 		return "[]"
 	}
 	for k, v := range myLockMap {
@@ -38,7 +36,6 @@ func listLocks() (s string) {
 		}
 	}
 	mutex.Unlock()
-	runtime.Gosched()
 	debug(fmt.Sprintf(">>> s: %s", s))
 	return fmt.Sprintf("[ %s ]", s)
 }
@@ -47,7 +44,6 @@ func storeLock(id string) (e error) {
 	mutex.Lock()
 	myLockMap[id] = id
 	mutex.Unlock()
-	runtime.Gosched()
 
 	debug(fmt.Sprintf(">> storeLock: storing %s", id))
 	err := getLock(id)
@@ -62,7 +58,6 @@ func getLock(id string) (e error) {
 	mutex.Lock()
 	_, ok := myLockMap[id]
 	mutex.Unlock()
-	runtime.Gosched()
 	if !ok {
 		debug(fmt.Sprintf(">> getLock: lock %s not found", id))
 		return errors.New("getLock: lock not found")
@@ -75,7 +70,6 @@ func deleteLock(id string) (e error) {
 	mutex.Lock()
 	delete(myLockMap, id)
 	mutex.Unlock()
-	runtime.Gosched()
 	err := getLock(id)
 	if err == nil {
 		debug(fmt.Sprintf(">> deleteLock: lock %s not deleted", id))
